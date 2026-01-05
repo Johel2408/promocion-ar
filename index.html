@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
   <head>
     <meta charset="utf-8" />
     <title>Promoción AR</title>
@@ -9,29 +9,111 @@
 
     <!-- MindAR -->
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   </head>
 
   <body style="margin:0; overflow:hidden;">
+
+    <!-- OVERLAY DE INICIO -->
+    <div id="startOverlay" style="
+      position: fixed;
+      inset: 0;
+      background: #000;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      font-family: sans-serif;
+      font-size: 1.2rem;
+      text-align: center;
+      padding: 20px;
+    ">
+      Toca la pantalla para comenzar
+    </div>
+
+    <!-- ESCENA AR -->
     <a-scene
       mindar-image="imageTargetSrc: targets.mind;"
       vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: false">
+      device-orientation-permission-ui="enabled: false"
+      embedded>
 
+      <!-- ASSETS -->
       <a-assets>
-        <video id="video1" src="videos/alumno1.mp4" loop></video>
+        <video
+          id="video1"
+          src="videos/alumno1.mp4"
+          muted
+          playsinline
+          webkit-playsinline
+          preload="auto"
+          crossorigin="anonymous">
+        </video>
       </a-assets>
 
       <!-- TARGET 0 -->
       <a-entity mindar-image-target="targetIndex: 0">
         <a-video
+          id="arVideo"
           src="#video1"
-          width="1"
-          height="0.56"
-          position="0 0 0">
+          position="0 0 0"
+          material="shader: flat; side: double">
         </a-video>
       </a-entity>
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <a-camera
+        position="0 0 0"
+        look-controls="enabled: false">
+      </a-camera>
+
     </a-scene>
+
+    <!-- LOGICA -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const video = document.querySelector('#video1');
+        const arVideo = document.querySelector('#arVideo');
+        const target = document.querySelector('[mindar-image-target]');
+        const overlay = document.getElementById('startOverlay');
+
+        /* 1️⃣ DESBLOQUEO DE VIDEO (obligatorio para Safari) */
+        overlay.addEventListener('click', () => {
+          video.muted = true;
+          video.play().then(() => {
+            video.pause();
+            video.currentTime = 0;
+            overlay.style.display = 'none';
+          });
+        }, { once: true });
+
+        /* 2️⃣ AJUSTE AUTOMÁTICO DE PROPORCIÓN */
+        video.addEventListener('loadedmetadata', () => {
+          const ratio = video.videoWidth / video.videoHeight;
+
+          if (ratio >= 1) {
+            // Horizontal o cuadrado
+            arVideo.setAttribute('width', 1);
+            arVideo.setAttribute('height', 1 / ratio);
+          } else {
+            // Vertical
+            arVideo.setAttribute('height', 1);
+            arVideo.setAttribute('width', ratio);
+          }
+        });
+
+        /* 3️⃣ CONTROL DE REPRODUCCIÓN POR TARGET */
+        target.addEventListener('targetFound', () => {
+          video.play().catch(() => {});
+        });
+
+        target.addEventListener('targetLost', () => {
+          video.pause();
+          video.currentTime = 0;
+        });
+      });
+    </script>
+
   </body>
 </html>
